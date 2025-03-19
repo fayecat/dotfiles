@@ -110,7 +110,7 @@ lvim.plugins = {
     cmd = "Trouble",
     keys = {
       {
-        "<leader>xs",
+        "<leader>xa",
         "<cmd>Trouble diagnostics toggle<cr>",
         desc = "Diagnostics (Trouble)",
       },
@@ -120,7 +120,7 @@ lvim.plugins = {
         desc = "Buffer Diagnostics (Trouble)",
       },
       {
-        "<leader>cs",
+        "<leader>xs",
         "<cmd>Trouble symbols toggle focus=false<cr>",
         desc = "Symbols (Trouble)",
       },
