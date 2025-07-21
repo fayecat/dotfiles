@@ -2,7 +2,7 @@
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
 
 # Path to your oh-my-zsh installation.
-export ZSH="/Users/fayecat/.oh-my-zsh"
+export ZSH="/Users/xxx/.oh-my-zsh"
 
 # Set name of the theme to load --- if set to "random", it will
 # load a random theme each time oh-my-zsh is loaded, in which case,
@@ -99,28 +99,34 @@ source $ZSH/oh-my-zsh.sh
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 source $ZSH_CUSTOM/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
-source /Users/fayecat/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+source /Users/xxx/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+
+source ~/Code/misc/zsh-syntax-highlighting/themes/catppuccin_mocha-zsh-syntax-highlighting.zsh
 
 export ANDROID_HOME=$HOME/Library/Android/sdk
 export PATH=$PATH:$ANDROID_HOME/tools
 export PATH=$PATH:$ANDROID_HOME/tools/bin
 export PATH=$PATH:$ANDROID_HOME/platform-tools
 export PATH=$PATH:$ANDROID_HOME/emulator
+export PATH=/opt/homebrew/bin:$PATH
 export PATH=/usr/local/bin:$PATH
+export PATH="$HOME/.venv/general/bin:$PATH"
 
+export PATH=/opt/homebrew/bin:$PATH
 export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH"
 export PATH="$HOME/.nodenv/bin:$PATH"
 eval "$(nodenv init -)"
 
 export PATH=$PATH:$(npm bin -g)
 
-export PATH=$GOPATH/bin:$HOME/flutter/bin:$PATH
+export PATH=$HOME/Code/development/flutter/bin:$PATH
 
 export FZF_DEFAULT_COMMAND="fd --exclude={.git,.idea,.sass-cache,node_modules,build} --type f"
 
 alias cdc='cd $HOME/Code/'
 alias flt='flutter'
 alias tnew='tmux new -s'
+alias tn='tmux new -s'
 alias tls='tmux ls'
 alias td='tmux detach'
 alias ta='tmux attach -t'
@@ -133,20 +139,17 @@ export GOENV_ROOT="$HOME/.goenv"
 export PATH="$GOENV_ROOT/bin:$PATH"
 eval "$(goenv init -)"
 
-export GOPATH="$HOME/go"
-export GOROOT="$(goenv prefix)"
-export PATH="$GOPATH/bin:$PATH"
+export PATH="$GOPATH/bin/darwin_amd64:$PATH"
+# export PATH="$GOPATH/bin/linux_amd64:$PATH"
 
-export PATH="$HOME/Code/cxla/commands:$PATH"
 
-# export PATH="$GOROOT/bin:$PATH"
-# export PATH="$PATH:$GOPATH/bin"
+export PATH="$HOME/Code/cc/commands:$PATH"
+
 export LC_ALL=en_US.UTF-8
 # export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.ustc.edu.cn/homebrew-bottles/
-# . "/Users/fayecat/.acme.sh/acme.sh.env"
+# . "/Users/xxx/.acme.sh/acme.sh.env"
 
-export ZPLUG_HOME=/usr/local/opt/zplug
-source $ZPLUG_HOME/init.zsh
+source ~/.zplug/init.zsh
 zplug "mafredri/zsh-async", from:github
 zplug "sindresorhus/pure", use:pure.zsh, from:github, as:theme
 zplug load
@@ -161,3 +164,29 @@ fi
 
 SPACESHIP_USER_SHOW="always"
 SPACESHIP_DIR_TRUNC_REPO=false
+
+tt() {
+  if ! tmux has-session -t e 2>/dev/null; then
+    tmux new-session -d -s e -n main
+    tmux send-keys -t e:main 'cd ~/Code && vim' C-m
+  fi
+
+  if ! tmux has-session -t cc 2>/dev/null; then
+    tmux new-session -d -s cc -n main
+  fi
+
+  if ! tmux has-session -t ll 2>/dev/null; then
+    tmux new-session -d -s ll -n main
+  fi
+
+  # if ! tmux has-session -t misc 2>/dev/null; then
+  #   tmux new-session -d -s misc -n main
+  # fi
+
+}
+
+# Added by Windsurf
+export PATH="/Users/xxx/.codeium/windsurf/bin:$PATH"
+
+
+export SWIFT_EXEC="$(xcrun -f swiftc)"

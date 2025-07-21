@@ -71,10 +71,34 @@ lvim.plugins = {
   },
   {"akinsho/bufferline.nvim"},
   {"hrsh7th/nvim-cmp"},
-  {"nvim-treesitter/nvim-treesitter", build = ":TSUpdate"},
+  {
+    'nvim-treesitter/nvim-treesitter',
+    opts = function(_, opts)
+      opts.ignore_install = { 'help'}
+  
+      if type(opts.ensure_installed) == 'table' then
+        vim.list_extend(opts.ensure_installed, {
+          'dockerfile',
+          'git_config',
+          'jsdoc',
+          'make',
+          'toml',
+          'vimdoc',
+        })
+      end
+    end,
+  },
   -- {"L3MON4D3/LuaSnip"},
   {"numToStr/Comment.nvim"},
   {"lewis6991/gitsigns.nvim"},
+  {
+    "EdenEast/nightfox.nvim",
+    lazy = false,
+    priority = 1000,
+    config = function()
+      vim.cmd("colorscheme duskfox")
+    end
+  },
   {"folke/which-key.nvim"},
   -- {"Mofiqul/dracula.nvim"},
   -- {
@@ -91,6 +115,7 @@ lvim.plugins = {
   {
     "loctvl842/monokai-pro.nvim",
   },
+  { "catppuccin/nvim", name = "catppuccin-macchiato", priority = 1000 },
   {"windwp/nvim-autopairs"},
   {"tpope/vim-rsi"},
   {"lukas-reineke/indent-blankline.nvim"},
@@ -104,6 +129,7 @@ lvim.plugins = {
   {"nvim-lua/plenary.nvim"},
   {"nvim-pack/nvim-spectre"},
   {"yamatsum/nvim-cursorline"},
+  {"rebelot/kanagawa.nvim"},
   {
     "folke/trouble.nvim",
     opts = {}, -- for default options, refer to the configuration section for custom setup.
@@ -148,31 +174,27 @@ lvim.plugins = {
     event = {"BufReadPost"},
     ft = { "json", "yaml" },
   },
-  -- {
-  --   "neovim/nvim-lspconfig",
-    
-  --   servers = {
-  --     sourcekit = {
-  --       cmd = "/usr/bin/sourcekit-lsp",
-  --     },
-  --   },
-  -- },
   {
     "neovim/nvim-lspconfig",
-    -- servers = {
-    --   sourcekit = {
-    --     cmd = "/usr/bin/sourcekit-lsp",
-    --   },
-    -- },
     lazy = false,
     config = function()
       local lspconfig = require('lspconfig')
 
-      lspconfig.clangd.setup {}
       lspconfig.rust_analyzer.setup {}
       lspconfig.tsserver.setup {}
+      lspconfig.clangd.setup({
+        filetypes = { "c", "cpp" }
+      })
 
       lspconfig.sourcekit.setup({
+        -- cmd = { "sourcekit-lsp" },
+        cmd = {
+          "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/sourcekit-lsp"
+        },
+        filetypes = { "swift", "c", "cpp", "objective-c", "objective-cpp" },
+        root_dir = require('lspconfig.util').root_pattern("Package.swift", ".git"),
+        -- filetypes = { "swift", "objective-c", "objective-cpp" },
+        -- root_dir = require('lspconfig.util').root_pattern('Package.swift', '.git'),
         capabilities = {
           workspace = {
             didChangeWatchedFiles = {
@@ -182,27 +204,48 @@ lvim.plugins = {
         },
       })
 
-    vim.api.nvim_create_autocmd('LspAttach', {
-      desc = 'LSP Actions',
-      callback = function(args)
-        -- Once we've attached, configure the keybindings
-        local wk = require('which-key')
-        wk.register({
-          K = { vim.lsp.buf.hover, "LSP hover info"},
-          gd = { vim.lsp.buf.definition, "LSP go to definition"},
-          gD = { vim.lsp.buf.declaration, "LSP go to declaration"},
-          gi = { vim.lsp.buf.implementation, "LSP go to implementation"},
-          gr = { vim.lsp.buf.references, "LSP list references"},
-          gs = { vim.lsp.buf.signature_help, "LSP signature help"},
-          gn = { vim.lsp.buf.rename, "LSP rename"},
-          ["[g"] = { vim.diagnostic.goto_prev, "Go to previous diagnostic"},
-          ["g]"] = { vim.diagnostic.goto_next, "Go to next diagnostic"},
-        }, {
-          mode = 'n',
-          silent = true,
-        })
-      end,
-    })
+      vim.api.nvim_create_autocmd('LspAttach', {
+        desc = 'LSP Actions',
+        callback = function(args)
+          -- Once we've attached, configure the keybindings
+          local wk = require('which-key')
+          wk.register({
+            K = { vim.lsp.buf.hover, "LSP hover info"},
+            gd = { vim.lsp.buf.definition, "LSP go to definition"},
+            gD = { vim.lsp.buf.declaration, "LSP go to declaration"},
+            gi = { vim.lsp.buf.implementation, "LSP go to implementation"},
+            gr = { vim.lsp.buf.references, "LSP list references"},
+            gs = { vim.lsp.buf.signature_help, "LSP signature help"},
+            gn = { vim.lsp.buf.rename, "LSP rename"},
+            ["[g"] = { vim.diagnostic.goto_prev, "Go to previous diagnostic"},
+            ["g]"] = { vim.diagnostic.goto_next, "Go to next diagnostic"},
+          }, {
+            mode = 'n',
+            silent = true,
+          })
+        end,
+      })
+
+      -- vim.api.nvim_create_autocmd("BufWritePost", {
+      --   pattern = "Package.swift",
+      --   callback = function()
+      --     vim.fn.jobstart({ "swift", "build" }, {
+      --       stdout_buffered = true,
+      --       stderr_buffered = true,
+      --       on_stdout = function(_, data)
+      --         if data then
+      --           print("[swift build] " .. table.concat(data, "\n"))
+      --         end
+      --       end,
+      --       on_stderr = function(_, data)
+      --         if data then
+      --           print("[swift build error] " .. table.concat(data, "\n"))
+      --         end
+      --       end,
+      --     })
+      --   end,
+      -- })
+
     end
   },
   {'kevinhwang91/nvim-hlslens'},
@@ -225,11 +268,11 @@ lvim.plugins = {
   --       })
   --   end,
   -- },
-  {
-    "JoosepAlviste/nvim-ts-context-commentstring",
-    lazy = true,
-    event = { "User FileOpened" },
-  },
+  -- {
+  --   "JoosepAlviste/nvim-ts-context-commentstring",
+  --   lazy = true,
+  --   event = { "User FileOpened" },
+  -- },
   {
     "rmagatti/goto-preview",
     lazy = true,
@@ -282,6 +325,20 @@ lvim.plugins = {
  },
  {'airblade/vim-gitgutter'},
  {
+    "ray-x/lsp_signature.nvim",
+    event = "VeryLazy",
+    config = function()
+      require("lsp_signature").setup({
+        bind = true,
+        floating_window = true,
+        hint_enable = true,
+        handler_opts = {
+          border = "rounded"
+        },
+      })
+    end,
+ },
+ {
     "zbirenbaum/neodim",
     lazy = true,
     event = "LspAttach",
@@ -313,7 +370,12 @@ lvim.plugins = {
   --   },
   --   config = function()
   --     require("xcodebuild").setup({
-  --         -- put some options here or leave it empty to use default settings
+  --       auto_select_project = true,
+  --       auto_select_scheme = true,
+  --       auto_select_destination = true,
+  --       show_build_output = true,
+  --       show_test_output = true,
+  --       mappings_enabled = false
   --     })
   --   end,
   -- },
@@ -488,23 +550,6 @@ lvim.plugins = {
   --   opts = {},
   -- },
   {
-    "olexsmir/gopher.nvim",
-    ft = "go",
-    -- branch = "develop", -- if you want develop branch
-                           -- keep in mind, it might break everything
-    dependencies = {
-      "nvim-lua/plenary.nvim",
-      "nvim-treesitter/nvim-treesitter",
-      "mfussenegger/nvim-dap", -- (optional) only if you use `gopher.dap`
-    },
-    -- (optional) will update plugin's deps on every update
-    build = function()
-      vim.cmd.GoInstallDeps()
-    end,
-    ---@type gopher.Config
-    opts = {},
-  },
-  {
     "cuducos/yaml.nvim",
     ft = { "yaml" }, -- optional
     dependencies = {
@@ -515,6 +560,14 @@ lvim.plugins = {
   {'iamcco/markdown-preview.nvim'},
   { "ellisonleao/dotenv.nvim" },
   {"NvChad/nvim-colorizer.lua"},
+  -- {
+  --   "mikavilpas/yazi.nvim",
+  --   cmd = { "Yazi" },
+  --   keys = {
+  --     { "<leader>sy", "<cmd>Yazi<cr>", desc = "Open Yazi" }
+  --   },
+  --   opts = {}
+  -- },
   {
     "SmiteshP/nvim-navic",
     dependencies = {
@@ -534,33 +587,45 @@ lvim.plugins = {
     },
   },
   { "mhinz/vim-startify" },
-  {
-    "kdheepak/lazygit.nvim",
-    lazy = true,
-    cmd = {
-        "LazyGit",
-        "LazyGitConfig",
-        "LazyGitCurrentFile",
-        "LazyGitFilter",
-        "LazyGitFilterCurrentFile",
-    },
-    -- optional for floating window border decoration
-    dependencies = {
-        "nvim-lua/plenary.nvim",
-    },
-    -- setting the keybinding for LazyGit with 'keys' is recommended in
-    -- order to load the plugin when the command is run for the first time
-    keys = {
-        { "<leader>lg", "<cmd>LazyGit<cr>", desc = "LazyGit" }
-    }
-  },
+  -- {
+  --   "kdheepak/lazygit.nvim",
+  --   lazy = true,
+  --   cmd = {
+  --       "LazyGit",
+  --       "LazyGitConfig",
+  --       "LazyGitCurrentFile",
+  --       "LazyGitFilter",
+  --       "LazyGitFilterCurrentFile",
+  --   },
+  --   -- optional for floating window border decoration
+  --   dependencies = {
+  --       "nvim-lua/plenary.nvim",
+  --   },
+  --   -- setting the keybinding for LazyGit with 'keys' is recommended in
+  --   -- order to load the plugin when the command is run for the first time
+  --   keys = {
+  --       { "<leader>lg", "<cmd>LazyGit<cr>", desc = "LazyGit" }
+  --   }
+  --   config = function()
+  --     require("lazygit").setup({
+  --       editCommand = function(filename, line_number)
+  --         line_number = tonumber(line_number) or 1
+  --         vim.api.nvim_win_close(0, true)
+  --         vim.api.nvim_command('edit +' .. line_number .. " " .. filename)
+  --       end,
+  --       openCommand = function(filename, line_number)
+  --         line_number = tonumber(line_number) or 1
+  --         vim.api.nvim_win_close(0, true)
+  --         vim.api.nvim_command('edit +' .. line_number .. " " .. filename)
+  --       end,
+  --     })
+  --   end
+  -- },
   {
     "yorickpeterse/nvim-window",
-    keys = {
-      { "<leader>wj", "<cmd>lua require('nvim-window').pick()<cr>", desc = "nvim-window: Jump to window" },
-    },
     config = true,
   },
+  { "autoim.vim" },
   {
     'Exafunction/codeium.vim',
     event = 'BufEnter',
@@ -601,7 +666,6 @@ lvim.plugins = {
   --   end,
   -- },
   -- { "github/copilot.vim" },
-  -- { "nvim-lua/plenary.nvim" },
   -- {
   --   "CopilotC-Nvim/CopilotChat.nvim",
   --   dependencies = {
@@ -610,150 +674,340 @@ lvim.plugins = {
   --   },
   --   build = "make tiktoken", -- Only on MacOS or Linux
   --   opts = {
+  --     model = 'gpt-4o',
+  --     agent = 'copilot',
   --     prompts = {
   --       Default = "请回答以下问题：", -- 设置默认提示为中文
   --       Explain = "请解释以下代码：",
-  --       Fix = "请修复以下代码：",
+  --       Fix = "请修复并优化以下代码：",
   --       Optimize = "请优化以下代码：",
   --       Docs = "请为以下代码生成文档：",
   --       Tests = "请为以下代码生成测试：",
   --       Review = "请在代码的功能性、性能、可读性、安全性，或者是否存在潜在的错误或改进空间等方面审查以下代码：",
   --     },
+  --     mappings = {
+  --       complete = {
+  --         insert = '<C-s>',
+  --       },
+  --       show_diff = {
+  --         full_diff = true
+  --       }
+  --     },
+  --     separator = '',
+  --     clear_chat_on_new_prompt = true,
+  --     chat_autocomplete = false,
+  --     auto_insert_mode = true,
   --     window = {
   --       layout = 'vertical', -- 'vertical', 'horizontal', 'float', 'replace'
-  --       width = 0.4, -- fractional width of parent, or absolute width in columns when > 1
-  --       height = 0.5, -- fractional height of parent, or absolute height in rows when > 1
+  --       width = 0.3, -- fractional width of parent, or absolute width in columns when > 1
+  --       height = 1, -- fractional height of parent, or absolute height in rows when > 1
   --       -- Options below only apply to floating windows
   --       relative = 'editor', -- 'editor', 'win', 'cursor', 'mouse'
-  --       border = 'single', -- 'none', single', 'double', 'rounded', 'solid', 'shadow'
+  --       border = 'none', -- 'none', single', 'double', 'rounded', 'solid', 'shadow'
   --       row = nil, -- row position of the window, default is centered
   --       col = nil, -- column position of the window, default is centered
-  --       title = 'Copilot Chat', -- title of chat window
+  --       title = '', -- title of chat window
   --       footer = nil, -- footer of chat window
   --       zindex = 1, -- determines if window is on top or below other floating windows
   --     },
   --   }
   -- },
-  {
-    "yetone/avante.nvim",
-    event = "VeryLazy",
-    version = false, -- Set this to "*" to always pull the latest release version, or set it to false to update to the latest code changes.
-    opts = {
-      tokenizer = "tiktoken",
-      provider = "copilot",
-      mappings = {
-        --- @class AvanteConflictMappings
-        sidebar = {
-          apply_all = "A",
-          apply_cursor = "a",
-          retry_user_request = "r",
-          edit_user_request = "e",
-          switch_windows = "<Tab>",
-          reverse_switch_windows = "<S-Tab>",
-          remove_file = "d",
-          add_file = "@",
-          close = { "q" },
-          close_from_input = nil, -- e.g., { normal = "<Esc>", insert = "<C-d>" }
-        },
-        toggle = {
-          hint = "<leader>ah",
-          repomap = "<leader>aR",
-        },
-      },
-      repo_map = {
-        ignore_patterns = { "%.git", "%.worktree", "__pycache__", "node_modules" }, -- ignore files matching these
-        negate_patterns = {}, -- negate ignore files matching these.
-      },
-      --- @class AvanteFileSelectorConfig
-      file_selector = {
-        --- @alias FileSelectorProvider "native" | "fzf" | "mini.pick" | "snacks" | "telescope" | string | fun(params: avante.file_selector.IParams|nil): nil
-        provider = "telescope",
-        -- Options override for custom providers
-        provider_opts = {},
-      },
-      windows = {
-        -- width = 35,
-        wrap = true,
-        input = {
-          prefix = "",
-        },
-        sidebar_header = {
-          enabled = false,
-        },
-        edit = {
-          border = "rounded",
-          floating = false,
-          start_insert = true, -- Start insert mode when opening the edit window
-        },
-        ask = {
-          floating = false, -- Open the 'AvanteAsk' prompt in a floating window
-          start_insert = true, -- Start insert mode when opening the ask window
-          border = "none",
-          ---@type "ours" | "theirs"
-          focus_on_apply = "ours", -- which diff to focus after applying
-        },
-      }
-    },
-    -- if you want to build from source then do `make BUILD_FROM_SOURCE=true`
-    build = "make",
-    -- build = "powershell -ExecutionPolicy Bypass -File Build.ps1 -BuildFromSource false" -- for windows
-    dependencies = {
-      "nvim-treesitter/nvim-treesitter",
-      "stevearc/dressing.nvim",
-      "nvim-lua/plenary.nvim",
-      "MunifTanjim/nui.nvim",
-      --- The below dependencies are optional,
-      "echasnovski/mini.pick", -- for file_selector provider mini.pick
-      "nvim-telescope/telescope.nvim", -- for file_selector provider telescope
-      "hrsh7th/nvim-cmp", -- autocompletion for avante commands and mentions
-      "ibhagwan/fzf-lua", -- for file_selector provider fzf
-      "nvim-tree/nvim-web-devicons", -- or echasnovski/mini.icons
-      "zbirenbaum/copilot.lua", -- for providers='copilot'
-      {
-        -- support for image pasting
-        "HakonHarnes/img-clip.nvim",
-        event = "VeryLazy",
-        opts = {
-          -- recommended settings
-          default = {
-            embed_image_as_base64 = false,
-            prompt_for_file_name = false,
-            drag_and_drop = {
-              insert_mode = true,
-            },
-            -- required for Windows users
-            use_absolute_path = true,
-          },
-        },
-      },
-      {
-        -- Make sure to set this up properly if you have lazy=true
-        'MeanderingProgrammer/render-markdown.nvim',
-        opts = {
-          file_types = { "markdown", "Avante" },
-        },
-        ft = { "markdown", "Avante" },
-      },
-    },
-  },
+  -- {
+  --   "yetone/avante.nvim",
+  --   event = "VeryLazy",
+  --   tag = "v0.0.23",
+  --   version = false, -- Set this to "*" to always pull the latest release version, or set it to false to update to the latest code changes.
+  --   opts = {
+  --     tokenizer = "tiktoken",
+  --     provider = "copilot",
+  --     -- behaviour = {
+  --     --   jump_result_buffer_on_finish = false,
+  --     -- },
+  --     web_search_engine = {
+  --       provider = "google",
+  --     },
+  --     -- vendors = {
+  --     --   ["copilot1"] = {
+  --     --     __inherited_from = "copilot",
+  --     --     model = "claude-3.5-sonnet",
+  --     --   },
+  --     --   ["copilot2"] = {
+  --     --     __inherited_from = "copilot",
+  --     --     model = "claude-3.7-sonnet",
+  --     --   },
+  --     --   ["copilot3"] = {
+  --     --     __inherited_from = "copilot",
+  --     --     model = "o3-mini",
+  --     --   },
+  --     -- },  
+  --     mappings = {
+  --       --- @class AvanteConflictMappings
+  --       sidebar = {
+  --         apply_all = "A",
+  --         apply_cursor = "a",
+  --         retry_user_request = "r",
+  --         edit_user_request = "e",
+  --         switch_windows = "<Tab>",
+  --         reverse_switch_windows = "<S-Tab>",
+  --         remove_file = "d",
+  --         add_file = "@",
+  --         close = { "q" },
+  --         close_from_input = nil, -- e.g., { normal = "<Esc>", insert = "<C-d>" }
+  --       },
+  --       toggle = {
+  --         hint = "<leader>ah",
+  --         repomap = "<leader>aR",
+  --       },
+  --     },
+  --     repo_map = {
+  --       ignore_patterns = { "%.git", "%.worktree", "__pycache__", "node_modules" }, -- ignore files matching these
+  --       negate_patterns = {}, -- negate ignore files matching these.
+  --     },
+  --     --- @class AvanteFileSelectorConfig
+  --     file_selector = {
+  --       --- @alias FileSelectorProvider "native" | "fzf" | "mini.pick" | "snacks" | "telescope" | string | fun(params: avante.file_selector.IParams|nil): nil
+  --       provider = "telescope",
+  --       -- Options override for custom providers
+  --       provider_opts = {},
+  --     },
+  --     windows = {
+  --       -- width = 35,
+  --       wrap = true,
+  --       input = {
+  --         prefix = "",
+  --       },
+  --       sidebar_header = {
+  --         enabled = false,
+  --       },
+  --       edit = {
+  --         border = "rounded",
+  --         floating = false,
+  --         start_insert = true, -- Start insert mode when opening the edit window
+  --       },
+  --       ask = {
+  --         floating = false, -- Open the 'AvanteAsk' prompt in a floating window
+  --         start_insert = true, -- Start insert mode when opening the ask window
+  --         border = "none",
+  --         ---@type "ours" | "theirs"
+  --         focus_on_apply = "ours", -- which diff to focus after applying
+  --       },
+  --     }
+  --   },
+  --   -- if you want to build from source then do `make BUILD_FROM_SOURCE=true`
+  --   build = "make",
+  --   -- build = "powershell -ExecutionPolicy Bypass -File Build.ps1 -BuildFromSource false" -- for windows
+  --   dependencies = {
+  --     "nvim-treesitter/nvim-treesitter",
+  --     "stevearc/dressing.nvim",
+  --     "nvim-lua/plenary.nvim",
+  --     "MunifTanjim/nui.nvim",
+  --     --- The below dependencies are optional,
+  --     "echasnovski/mini.pick", -- for file_selector provider mini.pick
+  --     "nvim-telescope/telescope.nvim", -- for file_selector provider telescope
+  --     "hrsh7th/nvim-cmp", -- autocompletion for avante commands and mentions
+  --     "ibhagwan/fzf-lua", -- for file_selector provider fzf
+  --     "nvim-tree/nvim-web-devicons", -- or echasnovski/mini.icons
+  --     "zbirenbaum/copilot.lua", -- for providers='copilot'
+  --     {
+  --       -- support for image pasting
+  --       "HakonHarnes/img-clip.nvim",
+  --       event = "VeryLazy",
+  --       opts = {
+  --         -- recommended settings
+  --         default = {
+  --           embed_image_as_base64 = false,
+  --           prompt_for_file_name = false,
+  --           drag_and_drop = {
+  --             insert_mode = true,
+  --           },
+  --           -- required for Windows users
+  --           use_absolute_path = true,
+  --         },
+  --       },
+  --     },
+  --     {
+  --       -- Make sure to set this up properly if you have lazy=true
+  --       'MeanderingProgrammer/render-markdown.nvim',
+  --       opts = {
+  --         file_types = { "markdown", "Avante" },
+  --       },
+  --       ft = { "markdown", "Avante" },
+  --     },
+  --   },
+  -- },
   {
     'nvim-lualine/lualine.nvim',
     dependencies = { 'nvim-tree/nvim-web-devicons' },
     config = function()
       require('lualine').setup {
         options = {
-          -- theme = 'dracula',
-          theme = 'onedark',
+          theme = 'catppuccin-macchiato',
+          icons_enabled = true,
+          component_separators = { left = '', right = '' },
+          section_separators = { left = '', right = '' },
           refresh = {
             statusline = 100,
           },
         },
         sections = {
-          lualine_c = { { 'filename', path = 2 } }
-        } 
+          lualine_a = { { 'mode', icon = '' } },
+          lualine_b = { { 'branch', icon = '' }, 'diff', 'diagnostics' },
+          -- lualine_c = { { 'filename', file_status = true, path = 2, icon = '' } },
+          lualine_c = {
+            {
+              function()
+                return vim.fn.fnamemodify(vim.fn.getcwd(), ':t')  -- 获取当前目录名称
+              end,
+              icon = '',  -- 可以自定义图标
+              color = { fg = '#ffcc00', gui = 'bold' },  -- 设置高亮
+            },
+            { 'filename', file_status = true, path = 2, icon = '' }
+          },
+          lualine_x = { 'encoding', 'fileformat', 'filetype' },
+          lualine_y = { 'progress' },
+          lualine_z = { { 'location', icon = '' } }
+        }
       }
     end
   },
+  {
+    "rose-pine/neovim",
+    name = "rose-pine",
+  },
+  {'kevinhwang91/nvim-ufo', dependencies = 'kevinhwang91/promise-async'},
+  -- {
+  --   'luukvbaal/statuscol.nvim',
+  --   opts = function()
+  --     local builtin = require('statuscol.builtin')
+  --     return {
+  --       setopt = true,
+  --       -- override the default list of segments with:
+  --       -- number-less fold indicator, then signs, then line number & separator
+  --       segments = {
+  --         { text = { builtin.foldfunc }, click = 'v:lua.ScFa' },
+  --         { text = { '%s' }, click = 'v:lua.ScSa' },
+  --         {
+  --           text = { builtin.lnumfunc, ' ' },
+  --           condition = { true, builtin.not_empty },
+  --           click = 'v:lua.ScLa',
+  --         },
+  --       },
+  --     }
+  --   end,
+  -- },
+  -- {
+  --   'ggandor/leap.nvim',
+  --   config = function()
+  --     require('leap').setup { opts = { safe_labels = {} } }
+  --     vim.keymap.del({'n', 'x', 'o'}, 's')
+  --     vim.keymap.del({'n', 'x', 'o'}, 'S')
+  --     vim.keymap.set({'n', 'x', 'o'}, 'f', function()
+  --       require('leap').leap { target_windows = {vim.api.nvim_get_current_win()} }
+  --     end)
+  --   end
+  -- },
+  {
+    "folke/flash.nvim",
+    event = "VeryLazy",
+    opts = {
+      modes = {
+        char = {
+          enabled = true,
+          jump_labels = true, -- 显示提示字母
+          keys = { "f", "F" }, -- 把这些键绑定给 flash
+        },
+      },
+    },
+    keys = {
+      {
+        "f",
+        mode = { "n", "x", "o" },
+        function()
+          -- 启动 Flash，在屏幕所有地方查找字符（不分方向）
+          require("flash").treesitter({
+            search = {
+              mode = "exact",
+              forward = true
+            },
+            label = {
+              style = "overlay",
+            },
+            jump = {
+              autojump = true, -- 自动跳过去
+            },
+          })
+        end,
+        desc = "Flash Everywhere (no direction)",
+      },
+      {
+        "F",
+        mode = { "n", "x", "o" },
+        function()
+          -- 启动 Flash，在屏幕所有地方查找字符（不分方向）
+          require("flash").treesitter({
+            search = {
+              mode = "exact",
+              forward = false
+            },
+            label = {
+              style = "overlay",
+            },
+            jump = {
+              autojump = true, -- 自动跳过去
+            },
+          })
+        end,
+        desc = "Flash Everywhere (no direction)",
+      },
+    },
+  },
+  -- {
+  --   "justinmk/vim-sneak",
+  --   keys = {
+  --     { "f", "<Plug>Sneak_s", mode = { "n", "x", "o" }, desc = "Sneak forward" },
+  --     { "F", "<Plug>Sneak_S", mode = { "n", "x", "o" }, desc = "Sneak backward" },
+  --   },
+  --   init = function()
+  --     vim.g["sneak#label"] = 1        -- 开启标签提示
+  --     vim.g["sneak#use_ic_scs"] = 1   -- 智能大小写
+  --   end,
+  -- },
+  {
+    "folke/todo-comments.nvim",
+    dependencies = { "nvim-lua/plenary.nvim" },
+    opts = {}
+  },
+  {
+    "akinsho/toggleterm.nvim",
+    config = function()
+      require("toggleterm").setup({
+        open_mapping = [[<C-\>]],
+        direction = "horizontal",
+        size = 15
+      })
+    end
+  },
+  -- {
+  --   'rmagatti/auto-session',
+  --   lazy = false,
+  
+  --   ---enables autocomplete for opts
+  --   ---@module "auto-session"
+  --   ---@type AutoSession.Config
+  --   opts = {
+  --     suppressed_dirs = { '~/', '~/Projects', '~/Downloads', '/', 'node_modules', '~/Code' },
+  --     -- log_level = 'debug',
+  --     cwd_change_handling = true,
+  --     pre_cwd_changed_cmds = {
+  --       "tabdo NERDTreeClose" -- Close NERDTree before saving session
+  --     },
+  --     post_cwd_changed_cmds = {
+  --       function()
+  --         require("lualine").refresh() -- example refreshing the lualine status line _after_ the cwd changes
+  --       end
+  --     }
+  --   }
+  -- }
 }
 
 -- require('monokai').setup { italics = false }
@@ -828,8 +1082,6 @@ require 'colorizer'.setup {
 
 require('tsc').setup()
 
-require("lvim.lsp.manager").setup("sourcekit", opts)
-
 require('cmp').setup {
   enabled = true,
   autocomplete = true,
@@ -865,11 +1117,48 @@ end
 lvim.keys.normal_mode["<leader>s/"] = ":lua Spectre_search_current_file()<CR>"
 lvim.keys.normal_mode["<leader>r"] = ":e!<CR>"
 
-vim.opt.foldmethod = 'expr'
-vim.wo.foldexpr = "nvim_treesitter#foldexpr()"
-vim.opt.foldlevel = 9999
-vim.wo.fillchars = "fold: "
-vim.wo.foldtext = [[substitute(getline(v:foldstart),'\\t',repeat('\ ',&tabstop),'g').'...'.trim(getline(v:foldend)) . ' (' . (v:foldend - v:foldstart + 1) . ' lines)']]
+
+vim.o.foldlevel = 99 -- Using ufo provider need a large value, feel free to decrease the value
+vim.o.foldlevelstart = 99
+vim.o.foldenable = true
+vim.o.foldcolumn = '0'
+vim.o.fillchars = [[eob: ,fold: ,foldopen:,foldsep: ,foldclose:]]
+
+
+local handler = function(virtText, lnum, endLnum, width, truncate)
+  local newVirtText = {}
+  local suffix = (' 󰁂 %d '):format(endLnum - lnum)
+  local sufWidth = vim.fn.strdisplaywidth(suffix)
+  local targetWidth = width - sufWidth
+  local curWidth = 0
+  for _, chunk in ipairs(virtText) do
+      local chunkText = chunk[1]
+      local chunkWidth = vim.fn.strdisplaywidth(chunkText)
+      if targetWidth > curWidth + chunkWidth then
+          table.insert(newVirtText, chunk)
+      else
+          chunkText = truncate(chunkText, targetWidth - curWidth)
+          local hlGroup = chunk[2]
+          table.insert(newVirtText, {chunkText, hlGroup})
+          chunkWidth = vim.fn.strdisplaywidth(chunkText)
+          -- str width returned from truncate() may less than 2nd argument, need padding
+          if curWidth + chunkWidth < targetWidth then
+              suffix = suffix .. (' '):rep(targetWidth - curWidth - chunkWidth)
+          end
+          break
+      end
+      curWidth = curWidth + chunkWidth
+  end
+  table.insert(newVirtText, {suffix, 'MoreMsg'})
+  return newVirtText
+end
+
+require('ufo').setup({
+  fold_virt_text_handler = handler,
+  provider_selector = function(bufnr, filetype, buftype)
+      return {'treesitter', 'indent'}
+  end
+})
 
 
 lvim.builtin.treesitter.context_commentstring.enable_autocmd = false
@@ -939,6 +1228,7 @@ lvim.builtin.alpha.dashboard.section.footer.val = {
 }
 
 require("telescope").load_extension "file_browser"
+
 
 lvim.keys.normal_mode["<leader>se"] = ":Telescope file_browser path=%:p:h select_buffer=true<CR>"
 
@@ -1050,6 +1340,8 @@ require('hlslens').setup()
 --   },
 -- }
 
+vim.opt.guicursor = "n:block,i:ver25,r:hor10,v:hor20,c:ver20,sm:block-blinkwait175-blinkoff150-blinkon175"
+
 -- vim.opt.guicursor = {
 --   -- Normal mode
 --   'n:block',       -- Block cursor for normal, visual, and command modes
@@ -1094,36 +1386,35 @@ require("fidget").setup({
 })
 lvim.builtin.which_key.mappings["c"] = {} -- 清除 `<leader>c`
 lvim.builtin.which_key.mappings["a"] = {} -- 清除 `<leader>c`
--- lvim.builtin.which_key.mappings["c"]["c"] = { "<cmd>CopilotChatToggle<CR>", "Copilot Chat" }
 
-lvim.builtin.which_key.mappings["a"] = {
-  name = "Avante",
-  -- c = { "<cmd>AvanteClear<CR>", "Avante Clear" },
-  l = {
-    function()
-      -- 1. 进入视觉模式 (v)
-      vim.api.nvim_feedkeys('v', 'n', false)
 
-      -- 2. 执行 AvanteClear
-      vim.cmd('AvanteClear')
+-- lvim.builtin.which_key.mappings["a"] = {
+--   name = "Avante",
+--   -- c = { "<cmd>AvanteClear<CR>", "Avante Clear" },
+--   l = {
+--     function()
+--       -- 1. 进入视觉模式 (v)
+--       vim.api.nvim_feedkeys('v', 'n', false)
 
-      -- 3. 按 Esc 退出视觉模式
-      vim.defer_fn(function()
-        vim.api.nvim_feedkeys('<Esc>', 'n', false)
-      end, 50)  
-    end,
-    "Avante Clear"
-  },
-  e = { "<cmd>AvanteAsk 解释这些代码<CR>", "Avante Explain" },
-  x = { "<cmd>AvanteAsk 优化这些代码，修复其中的bug和问题（如果有），并且做到可以替换到文件<CR>", "Avante Optimize" },
-  y = { "<cmd>AvanteAsk 为这些代码生成文档，并且做到可以替换到文件<CR>", "Avante Docs" },
-  u = { "<cmd>AvanteAsk 为这些代码生成测试，并且做到可以替换到文件<CR>", "Avante Tests" },
-  v = { "<cmd>AvanteAsk 请在代码的功能性、性能、可读性、安全性，或者是否存在潜在的错误或改进空间等方面审查以下代码，并且做到可以替换到文件<CR>", "Avante Review" },
-  m = { "<cmd>AvanteAsk 总结这些代码，写一个 git commit message  <CR>", "Avante Commit" },
-  w = { "<cmd>AvanteAsk 停止 <CR>", "Avante Stop" },
-}
+--       -- 2. 执行 AvanteClear
+--       vim.cmd('AvanteClear')
 
--- lvim.builtin.which_key.mappings["c"] = {
+--       -- 3. 按 Esc 退出视觉模式
+--       vim.defer_fn(function()
+--         vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "n", false)
+--       end, 50)
+--     end,
+--     "Avante Clear"
+--   },
+--   v = { "<cmd>AvanteAsk 解释这些代码<CR>", "Avante Explain" },
+--   w = { "<cmd>AvanteToggle <CR>", "Avante Toggle" },
+--   y = { "<cmd>AvanteAsk 为这些代码生成文档，并且生成对应文件的 SEARCH/REPLACE 块<CR>", "Avante Docs" },
+--   u = { "<cmd>AvanteAsk 为这些代码生成测试，并且生成对应文件的 SEARCH/REPLACE 块<CR>", "Avante Tests" },
+--   x = { "<cmd>AvanteAsk 请在代码的功能性、性能、可读性、安全性，或者是否存在潜在的错误或改进空间等方面审查以下代码，优化这些代码，修复其中的bug和问题（如果有），并且生成对应文件的 SEARCH/REPLACE 块<CR>", "Avante Review" },
+--   m = { "<cmd>AvanteAsk 总结这些代码，写一个 git commit message  <CR>", "Avante Commit" },
+-- }
+
+-- lvim.builtin.which_key.mappings["a"] = {
 --   name = "Copilot", -- 让 which-key 显示 "Copilot" 作为菜单名称
 --   a = { "<cmd>CopilotChat<CR>", "Chat Toggle" },
 --   e = { "<cmd>CopilotChatExplain<CR>", "Explain Code" },
@@ -1133,19 +1424,18 @@ lvim.builtin.which_key.mappings["a"] = {
 --   t = { "<cmd>CopilotChatTests<CR>", "Generate Tests" },
 --   s = { "<cmd>CopilotChatStop<CR>", "Copilot Stop" },
 --   r = { "<cmd>CopilotChatReview<CR>", "Copilot Review" },
---   c = { "<cmd>CopilotChatCommit<CR>", "Copilot Review" },
+--   m = { "<cmd>CopilotChatCommit<CR>", "Copilot Review" },
 -- }
 
-lvim.keys.visual_mode["<leader>al"] = "<cmd>AvanteClear<CR>"
-lvim.keys.visual_mode["<leader>ae"] = "<cmd>AvanteAsk 解释这些代码<CR>"
-lvim.keys.visual_mode["<leader>ax"] = "<cmd>AvanteAsk 优化这些代码，修复其中的bug和问题（如果有），并且做到可以替换到文件<CR>"
-lvim.keys.visual_mode["<leader>ay"] = "<cmd>AvanteAsk 为这些代码生成文档，并且做到可以替换到文件<CR>"
-lvim.keys.visual_mode["<leader>au"] = "<cmd>AvanteAsk 为这些代码生成测试，并且做到可以替换到文件<CR>"
-lvim.keys.visual_mode["<leader>av"] = "<cmd>AvanteAsk 请在代码的功能性、性能、可读性、安全性，或者是否存在潜在的错误或改进空间等方面审查以下代码，并且做到可以替换到文件<CR>"
-lvim.keys.visual_mode["<leader>am"] = "<cmd>AvanteAsk 总结这些代码，写一个 git commit message<CR>"
-lvim.keys.visual_mode["<leader>aw"] = "<cmd>AvanteAsk 停止<CR>"
+-- lvim.keys.visual_mode["<leader>al"] = "<cmd>AvanteClear<CR>"
+-- lvim.keys.visual_mode["<leader>aw"] = "<cmd>AvanteToggle <CR>"
+-- lvim.keys.visual_mode["<leader>av"] = "<cmd>AvanteAsk 解释这些代码<<CR>"
+-- lvim.keys.visual_mode["<leader>ay"] = "<cmd>AvanteAsk 为这些代码生成文档，并且生成对应文件的 SEARCH/REPLACE 块<CR>"
+-- lvim.keys.visual_mode["<leader>au"] = "<cmd>AvanteAsk 为这些代码生成测试，并且生成对应文件的 SEARCH/REPLACE 块<CR>"
+-- lvim.keys.visual_mode["<leader>ax"] = "<cmd>AvanteAsk 请在代码的功能性、性能、可读性、安全性，或者是否存在潜在的错误或改进空间等方面审查以下代码，优化这些代码，修复其中的bug和问题（如果有），并且生成对应文件的 SEARCH/REPLACE 块<CR>"
+-- lvim.keys.visual_mode["<leader>am"] = "<cmd>AvanteAsk 总结这些代码，写一个 git commit message<CR>"
 
--- lvim.keys.visual_mode["<leader>ac"] = "<cmd>CopilotChat<CR>"
+-- lvim.keys.visual_mode["<leader>aa"] = "<cmd>CopilotChat<CR>"
 -- lvim.keys.visual_mode["<leader>ae"] = "<cmd>CopilotChatExplain<CR>"
 -- lvim.keys.visual_mode["<leader>af"] = "<cmd>CopilotChatFix<CR>"
 -- lvim.keys.visual_mode["<leader>ao"] = "<cmd>CopilotChatOptimize<CR>"
@@ -1153,20 +1443,21 @@ lvim.keys.visual_mode["<leader>aw"] = "<cmd>AvanteAsk 停止<CR>"
 -- lvim.keys.visual_mode["<leader>at"] = "<cmd>CopilotChatTests<CR>"
 -- lvim.keys.visual_mode["<leader>as"] = "<cmd>CopilotChatStop<CR>"
 -- lvim.keys.visual_mode["<leader>ar"] = "<cmd>CopilotChatReview<CR>"
--- lvim.keys.visual_mode["<leader>ac"] = "<cmd>CopilotChatCommit<CR>"
+-- lvim.keys.visual_mode["<leader>am"] = "<cmd>CopilotChatCommit<CR>"
 
 
-lvim.colorscheme = "onedark"
+-- lvim.colorscheme = "duskfox"
+lvim.colorscheme = "catppuccin-macchiato"
 
-vim.opt.fillchars = {
-  vert = " ", -- 垂直分隔符为空格
-  horiz = " ", -- 水平分隔符为空格
-  horizup = " ", -- 上水平分隔符为空格
-  horizdown = " ", -- 下水平分隔符为空格
-  vertleft = " ", -- 左垂直分隔符为空格
-  vertright = " ", -- 右垂直分隔符为空格
-  verthoriz = " ", -- 十字分隔符为空格
-}
+-- vim.opt.fillchars = {
+--   vert = " ", -- 垂直分隔符为空格
+--   horiz = " ", -- 水平分隔符为空格
+--   horizup = " ", -- 上水平分隔符为空格
+--   horizdown = " ", -- 下水平分隔符为空格
+--   vertleft = " ", -- 左垂直分隔符为空格
+--   vertright = " ", -- 右垂直分隔符为空格
+--   verthoriz = " ", -- 十字分隔符为空格
+-- }
 
 require('nvim-window').setup({
   -- The characters available for hinting windows.
@@ -1199,9 +1490,12 @@ lvim.keys.normal_mode["<leader>sw"] = ":lua require('nvim-window').pick()<CR>"
 vim.cmd [[autocmd VimEnter * Startify]]
 
 vim.g.startify_lists = {
-  { type = 'commands', header = { '   Commands' }, indices = { 'f', 'p', 't', 'r', 'c', '0' } },
-  { type = 'files', header = { '   MRU' }, indices = { '1', '2', '3', '4', '5', '6', '7', '8', '9', '10' } },
-  { type = 'dir', header = { '   Current Directory' }, indices = { '11', '12', '13', '14', '15', '16', '17', '18', '19', '20' } },
+  { type = 'commands', header = { '   Commands' }, indices = { 'f', 'p', 't', 'r', 'c', 'v' } },
+  { type = 'files', header = { '   MRU' }, indices = { 
+    '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
+    'a', 's', 'd', 'g', 'h', 'j', 'k', 'l', ';', '\''
+  } },
+  -- { type = 'dir', header = { '   Current Directory' }, indices = { 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/' } },
 }
 
 vim.g.startify_commands = {
@@ -1213,5 +1507,104 @@ vim.g.startify_commands = {
   { 'Refresh', ':Startify'},
 }
 
-lvim.keys.normal_mode["<leader>v"] = ":Startify <CR>"
+vim.g.startify_files_number = 20
 
+lvim.keys.normal_mode["<leader>v"] = ":Startify <CR>"
+lvim.keys.normal_mode["<leader>sd"] = ":TodoTelescope <CR>"
+
+
+vim.g.autoim_toggle_shortcut = 'cmd_space'
+
+vim.opt.termguicolors = true
+
+-- require('leap').add_default_mappings(false)
+
+-- require("lspconfig").volar.setup({
+--   on_attach = function(client)
+--     client.server_capabilities.documentFormattingProvider = false
+--   end
+-- })
+
+require("lspconfig").tsserver.setup({
+  filetypes = { "javascript", "javascriptreact", "typescript", "typescriptreact", "vue" },
+  root_dir = require("lspconfig.util").root_pattern("package.json", "tsconfig.json", "jsconfig.json", ".git")
+})
+
+local null_ls = require("null-ls")
+
+-- 设置格式化器 & Linter
+null_ls.setup({
+  sources = {
+    -- Prettier 格式化器
+    null_ls.builtins.formatting.prettier.with({
+      filetypes = { "javascript", "typescript", "javascriptreact", "typescriptreact", "json", "yaml", "markdown" },
+    }),
+
+    -- ESLint Linter（诊断 + 自动修复）
+    null_ls.builtins.diagnostics.eslint.with({
+      condition = function(utils)
+        return utils.root_has_file({ "eslint.config.mjs", "eslint.config.js", ".eslintrc.js", ".eslintrc.json" })
+      end,
+    }),
+
+    null_ls.builtins.code_actions.eslint.with({
+      condition = function(utils)
+        return utils.root_has_file({ "eslint.config.mjs", "eslint.config.js", ".eslintrc.js", ".eslintrc.json" })
+      end,
+    }),
+    -- Go 语言格式化工具
+    null_ls.builtins.formatting.gofmt,
+    null_ls.builtins.formatting.goimports,
+    -- Go 语言诊断工具（可选）
+    null_ls.builtins.diagnostics.golangci_lint,
+    -- 格式化器，调用 SwiftFormat
+    null_ls.builtins.formatting.swiftformat,
+    -- 诊断工具，调用 SwiftLint
+    null_ls.builtins.diagnostics.swiftlint,
+  },
+})
+
+local lspconfig = require("lspconfig")
+local lsp_signature = require("lsp_signature")
+
+local on_attach = function(client, bufnr)
+  lsp_signature.on_attach({
+    bind = true,
+    handler_opts = {
+      border = "rounded"
+    },
+  }, bufnr)
+end
+
+-- Go
+require("lspconfig").gopls.setup({
+  on_attach = on_attach,
+})
+
+-- TypeScript / JavaScript
+require("lspconfig").tsserver.setup({
+  on_attach = on_attach,
+})
+
+-- Swift（需要你本地安装 sourcekit-lsp）
+require("lspconfig").sourcekit.setup({
+  on_attach = on_attach,
+})
+
+-- local swift_lsp = vim.api.nvim_create_augroup("swift_lsp", { clear = true })
+-- vim.api.nvim_create_autocmd("FileType", {
+--   pattern = { "swift" },
+--   callback = function()
+--     local root_dir = vim.fs.dirname(vim.fs.find({
+--       'Package.swift',
+--       ".git",
+--     }, { upward = true })[1])
+--     local client = vim.lsp.start({
+--       name = "sourcekit-lsp",
+--       cmd = { "sourcekit-lsp" },
+--       root_dir = root_dir,
+--     })
+--     vim.lsp.buf_attach_client(0, client)
+--   end,
+--   group = swift_lsp,
+-- })
